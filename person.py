@@ -39,15 +39,14 @@ def setup(hass, config):
         persons.append(person)
 
     for person in persons:
-        hass.states.set('person.%s_%s' % (person.firstname, person.lastname), '')
-        hass.states.set('person.%s_%s.firstname' % (person.firstname, person.lastname), person.firstname)
-        hass.states.set('person.%s_%s.lastname' % (person.firstname, person.lastname), person.lastname)
-        hass.states.set('person.%s_%s.gender' % (person.firstname, person.lastname), person.gender)
+        hass.states.set('%s_%s.firstname' % (person.firstname, person.lastname), person.firstname)
+        hass.states.set('%s_%s.lastname' % (person.firstname, person.lastname), person.lastname)
+        hass.states.set('%s_%s.gender' % (person.firstname, person.lastname), person.gender)
 
     return True
 
 
-class Person():
+class Person(object):
     """
     Person and possibly something we could use as an user.
     """
