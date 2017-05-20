@@ -21,6 +21,11 @@ person:
   - firstname: Steve
     lastname: Jefferson
     gender: male
+    relationships:
+      - person: person.anna_bell
+        relation: WIFE
+    device_trackers:
+      - device_tracker.stevesmbp
 
   - firstname: Anna
     lastname: Bell
@@ -29,3 +34,8 @@ person:
 It should now look like this:
 
 ![Example cards](./doc/img/example_cards.png)
+
+
+# Current problems
+
+- The device_trackers might not be loaded when the component loads.

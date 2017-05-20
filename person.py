@@ -9,6 +9,7 @@ DOMAIN = 'person'
 CONF_FIRSTNAME = 'firstname'
 CONF_LASTNAME = 'lastname'
 CONF_GENDER = 'gender'
+CONF_DEVICE_TRACKERS = 'device_trackers'
 CONF_RELATIONSHIPS = 'relationships'
 CONF_RELATIONSHIPS_PERSON = 'person'
 CONF_RELATIONSHIPS_RELATION = 'relation'
@@ -20,6 +21,10 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Required(CONF_FIRSTNAME): cv.string,
         vol.Required(CONF_LASTNAME): cv.string,
         vol.Optional(CONF_GENDER, default=DEFAULT_GENDER): cv.string,
+        vol.Optional(CONF_DEVICE_TRACKERS):
+            vol.All(cv.ensure_list, [
+                vol.Required(cv.entity_id)
+            ]),
         vol.Optional(CONF_RELATIONSHIPS):
             vol.All(cv.ensure_list, [{
                 vol.Required(CONF_RELATIONSHIPS_PERSON): cv.string,
@@ -34,14 +39,26 @@ def setup(hass, config):
     for person_data in config.get(DOMAIN):
         person = Person(person_data.get(CONF_FIRSTNAME), person_data.get(CONF_LASTNAME))
         person.gender = person_data.get(CONF_GENDER)
+        owning_device_trackers = person_data.get(CONF_DEVICE_TRACKERS)
+        if owning_device_trackers:
+            for owning_device_tracker in owning_device_trackers:
+                if owning_device_tracker in hass.states.entity_ids('device_tracker'):
+                    logging.warning('Successfully added %s as a device_tracker for %s' % (owning_device_tracker, person.firstname))
+                    person.add_device_tracker(hass.states.get(owning_device_tracker))
+
         if person_data.get(CONF_RELATIONSHIPS):
-            print(person_data.get(CONF_RELATIONSHIPS))
+            logging.warning(person_data.get(CONF_RELATIONSHIPS))
         persons.append(person)
 
     for person in persons:
         hass.states.set('%s_%s.firstname' % (person.firstname, person.lastname), person.firstname)
         hass.states.set('%s_%s.lastname' % (person.firstname, person.lastname), person.lastname)
         hass.states.set('%s_%s.gender' % (person.firstname, person.lastname), person.gender)
+        for device_tracker in person.device_trackers:
+            logging.warning(device_tracker)
+            device_name = str(device_tracker.object_id)
+            logging.warning(type(device_name))
+            hass.states.set('%s_%s.tracker_%s' % (person.firstname, person.lastname, device_name), device_tracker.state)
 
     return True
 
@@ -77,6 +94,7 @@ class Person(object):
         self._firstname = firstname
         self._lastname = lastname
         self._relationships = []
+        self._device_trackers = []
         self._gender = None
 
     @property
@@ -98,6 +116,13 @@ class Person(object):
         :return: 
         """
         self._gender = gender
+
+    @property
+    def device_trackers(self):
+        return self._device_trackers
+
+    def add_device_tracker(self, device_tracker):
+        self._device_trackers.append(device_tracker)
 
     @property
     def relationships(self):
