@@ -2,6 +2,9 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 import logging
 
+from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.event import track_time_change
+
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = 'person'
@@ -37,7 +40,7 @@ CONFIG_SCHEMA = vol.Schema({
 def setup(hass, config):
     persons = []
     for person_data in config.get(DOMAIN):
-        person = Person(person_data.get(CONF_FIRSTNAME), person_data.get(CONF_LASTNAME))
+        person = Person(hass, person_data.get(CONF_FIRSTNAME), person_data.get(CONF_LASTNAME))
         person.gender = person_data.get(CONF_GENDER)
         owning_device_trackers = person_data.get(CONF_DEVICE_TRACKERS)
         if owning_device_trackers:
@@ -63,7 +66,7 @@ def setup(hass, config):
     return True
 
 
-class Person(object):
+class Person(Entity):
     """
     Person and possibly something we could use as an user.
     """
@@ -86,16 +89,20 @@ class Person(object):
         }
     )
 
-    def __init__(self, firstname, lastname):
+    def __init__(self, hass, firstname, lastname):
         """
         :param firstname: 
         :param lastname: 
         """
+        self._hass = hass
         self._firstname = firstname
         self._lastname = lastname
         self._relationships = []
         self._device_trackers = []
         self._gender = None
+
+        # Run update every 5 seconds.
+        track_time_change(hass, lambda now: self.update(), second=range(0, 60, 5))
 
     @property
     def firstname(self):
@@ -130,3 +137,6 @@ class Person(object):
 
     def add_relationship(self, person, type):
         self._relationships.append({person: person, type: type})
+
+    def update(self):
+        logging.warning('Shit is updating, yoh')
